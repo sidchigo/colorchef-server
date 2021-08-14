@@ -1,7 +1,5 @@
-import random, time
-import pandas as pd
-import numpy as np
-from typing import List, Callable, Tuple
+import random, math, colorsys
+from typing import List, Tuple
 from flask import Flask
 from flask_restful import reqparse, abort, Api, Resource
 
@@ -10,13 +8,15 @@ api = Api(app)
 
 RGB_list = List[int]
 RGB_color = Tuple[int]
+HSL_color = Tuple[int]
+HSB_color = Tuple[int]
 
 parser = reqparse.RequestParser()
-parser.add_argument('hex_color', action='append')
+parser.add_argument('color', action='append')
 parser.add_argument('scale')
+parser.add_argument('type')
 
-class Colors(Resource):
-
+class ContrastChecker():
     def generate_colors(self, color: tuple) -> list:
         # if color == '':
         #     color = lambda : (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
@@ -30,7 +30,56 @@ class Colors(Resource):
 
     # hex to rgb converter
     def hex_to_rgb(self, color: str) -> RGB_color:
+        color = color.lstrip('#')
         return tuple(int(color[i:i+2], 16) for i in (0, 2, 4))
+
+    # hsl to rgb converter
+    def hsl_to_rgb(self, hsl: list) -> RGB_color:
+        hue = int(hsl[0])/360
+        sat = int(hsl[1])/100
+        lum = int(hsl[2])/100
+
+        red = math.ceil(colorsys.hls_to_rgb(hue, lum, sat)[0] * 255)
+        green = math.ceil(colorsys.hls_to_rgb(hue, lum, sat)[1] * 255)
+        blue = math.ceil(colorsys.hls_to_rgb(hue, lum, sat)[2] * 255)
+
+        return (red, green, blue)
+
+    # rgb to hsl converter
+    def rgb_to_hsl(self, rgb: list) -> HSL_color:
+        red = int(rgb[0])/255
+        green = int(rgb[1])/255
+        blue = int(rgb[2])/255
+
+        hue = math.ceil(colorsys.rgb_to_hls(red, green, blue)[0] * 360)
+        lum = math.ceil(colorsys.rgb_to_hls(red, green, blue)[1] * 100)
+        sat = math.ceil(colorsys.rgb_to_hls(red, green, blue)[2] * 100)
+
+        return (hue, sat, lum)
+    
+    # hsb to rgb converter
+    def hsb_to_rgb(self, hsb: list) -> RGB_color:
+        hue = int(hsb[0])/360
+        sat = int(hsb[1])/100
+        brightness = int(hsb[2])/100
+
+        red = math.ceil(colorsys.hsv_to_rgb(hue, sat, brightness)[0] * 255)
+        green = math.ceil(colorsys.hsv_to_rgb(hue, sat, brightness)[1] * 255)
+        blue = math.ceil(colorsys.hsv_to_rgb(hue, sat, brightness)[2] * 255)
+
+        return (red, green, blue)
+
+    # rgb to hsb converter
+    def rgb_to_hsb(self, rgb: list) -> HSB_color:
+        red = int(rgb[0])/255
+        green = int(rgb[1])/255
+        blue = int(rgb[2])/255
+
+        hue = math.ceil(colorsys.rgb_to_hsv(red, green, blue)[0] * 360)
+        sat = math.ceil(colorsys.rgb_to_hsv(red, green, blue)[1] * 100)
+        brightness = math.ceil(colorsys.rgb_to_hsv(red, green, blue)[2] * 100)
+
+        return (hue, sat, brightness)
 
     # luminance generator
     def luminance(self, rgb: list) -> list:
@@ -72,13 +121,13 @@ class Colors(Resource):
     def check_contrast(self, color: float) -> list:
         passing_test = []
         # good
-        if color < (1/4.5):
+        if color < (1/7):
             passing_test.append(True)
         else:
             passing_test.append(False)
 
         # very good
-        if color < (1/7):
+        if color < (1/8):
             passing_test.append(True)
         else:
             passing_test.append(False)
@@ -90,7 +139,7 @@ class Colors(Resource):
             passing_test.append(False)
 
         # ultimate
-        if color < (1/13):
+        if color < (1/12):
             passing_test.append(True)
         else:
             passing_test.append(False)
@@ -106,19 +155,43 @@ class Colors(Resource):
             contrast = self.find_contrast(luminance_pair)
             result = self.check_contrast(contrast)
 
-            if result[int(scale) - 1] == True:
-                colors.append('#' + '%02x%02x%02x' % color)
+            if result[int(scale) - 1] == True and len(colors) < 12:
+                hex_color = '#' + '%02x%02x%02x' % color
+                rgb_color = self.hex_to_rgb(hex_color)
+                hsl_color = self.rgb_to_hsl(rgb_color)
+                hsb_color = self.rgb_to_hsb(rgb_color)
+                colors.append({ 
+                    "hex": hex_color,
+                    "rgb": rgb_color,
+                    "hsl": hsl_color,
+                    "hsb": hsb_color
+                })
 
         return colors
 
+class Colors(Resource):
     # api to get fit colors
     def get(self):
+        # contrast checker object
+        contrast = ContrastChecker()
+
+        # parse reqeust body
         args = parser.parse_args()
+        type = args.type
+        scale = args.scale
+        input_color = args.color
+
         fit_colors = []
-        for color in args.hex_color:
-            rgb_color = self.hex_to_rgb(color)
-            color_list = self.generate_n_colors(1000)
-            fit_colors.append(self.fitness_func(rgb_color, color_list, args.scale))
+        if type == 'hex':
+            color = contrast.hex_to_rgb(input_color[0])
+        elif type == 'hsl':
+            color = contrast.hsl_to_rgb(input_color)
+        elif type == 'hsb':
+            color = contrast.hsb_to_rgb(input_color)
+        elif type == 'rgb':
+            color = input_color
+        color_list = contrast.generate_n_colors(1000)
+        fit_colors.append(contrast.fitness_func(color, color_list, scale))
         
         return { 'colors': fit_colors }, 201
 
