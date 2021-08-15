@@ -118,28 +118,35 @@ class ContrastChecker():
         return ratio
 
     # classify ratio on scale
-    def check_contrast(self, color: float) -> list:
+    def check_contrast(self, color: float, luminance: float) -> list:
         passing_test = []
+        contrast_params = []
+
+        if luminance < 0.025 or luminance > 0.7:
+            contrast_params = [7, 8, 10, 12]
+        else:
+            contrast_params = [6, 7, 8, 9]
+
         # good
-        if color < (1/7):
+        if color < (1/contrast_params[0]):
             passing_test.append(True)
         else:
             passing_test.append(False)
 
         # very good
-        if color < (1/8):
+        if color < (1/contrast_params[1]):
             passing_test.append(True)
         else:
             passing_test.append(False)
         
         # super
-        if color < (1/10):
+        if color < (1/contrast_params[2]):
             passing_test.append(True)
         else:
             passing_test.append(False)
 
         # ultimate
-        if color < (1/12):
+        if color < (1/contrast_params[3]):
             passing_test.append(True)
         else:
             passing_test.append(False)
@@ -152,8 +159,9 @@ class ContrastChecker():
         for color in input_colors:
             color_pair = [selected_color, color]
             luminance_pair = self.luminance(color_pair)
+            luminance_factor = luminance_pair[0]
             contrast = self.find_contrast(luminance_pair)
-            result = self.check_contrast(contrast)
+            result = self.check_contrast(contrast, luminance_factor)
 
             if result[int(scale) - 1] == True and len(colors) < 12:
                 hex_color = '#' + '%02x%02x%02x' % color
@@ -193,7 +201,7 @@ class Colors(Resource):
         color_list = contrast.generate_n_colors(1000)
         fit_colors.append(contrast.fitness_func(color, color_list, scale))
         
-        return { 'colors': fit_colors }, 201
+        return { 'colors': fit_colors[0], 'totalColors': len(fit_colors[0]) }, 201
 
 # routes
 api.add_resource(Colors, '/colors')
