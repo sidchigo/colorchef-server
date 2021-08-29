@@ -150,7 +150,7 @@ def fitness_func(selected_color: RGB_color, input_colors: RGB_list, scale: int) 
         contrast = find_contrast(luminance_pair)
         result = check_contrast(contrast, luminance_factor)
 
-        if result[int(scale) - 1] == True and len(colors) < 12:
+        if result[int(scale) - 1] == True and len(colors) < 120:
             hex_color = '#' + '%02x%02x%02x' % color
             rgb_color = hex_to_rgb(hex_color)
             hsl_color = rgb_to_hsl(rgb_color)
