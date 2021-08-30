@@ -161,5 +161,5 @@ def fitness_func(selected_color: RGB_color, input_colors: RGB_list, scale: int) 
                 "hsl": hsl_color,
                 "hsb": hsb_color
             })
-
+    
     return colors

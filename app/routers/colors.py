@@ -30,7 +30,9 @@ async def colors(hex: str, scale: int):
     try: 
         color = hex_to_rgb(hex)
         color_list = generate_n_colors(1000)
-        fit_colors.append(fitness_func(color, color_list, scale))
+        result = fitness_func(color, color_list, scale)
+        print(result)
+        fit_colors.append(result)
         return { "input_color": hex, "colors": fit_colors[0], 'totalColors': len(fit_colors[0]) }
     except:
         raise HTTPException(
