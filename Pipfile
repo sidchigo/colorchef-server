@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+opencv-python = "*"
+sklearn = "*"
+numpy = "*"
+pillow = "*"
+fastapi = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+fastapi-versioning = "*"
+python-multipart = "*"
+
+[scripts]
+start = "uvicorn app.main:app --reload"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
