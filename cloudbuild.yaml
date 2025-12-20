@@ -1,13 +1,20 @@
 steps:
 # Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/colorchef-f8206/colorchef', '.']
+  args: [ 'build', '-t', 'us-west1-docker.pkg.dev/projectcolorchef/project-colorchef/colorchef', '.' ]
 # Push the container image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/colorchef-f8206/colorchef']
+  args: ['push', 'us-west1-docker.pkg.dev/projectcolorchef/project-colorchef/colorchef']
 # Deploy container image to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
-  args: ['run', 'deploy', 'colorchef', '--image', 'gcr.io/colorchef-f8206/colorchef', '--region', 'asia-south1', '--platform', 'managed']
+  args: ['run', 'deploy', 'colorchef', 
+        '--image', 'us-west1-docker.pkg.dev/projectcolorchef/project-colorchef/colorchef', 
+        '--region', 'us-west1', '--platform', 'managed',
+        '--allow-unauthenticated']
+artifacts:
+  objects:
+    location: 'gs://colorchef-bucket'
+    paths: ['*']
 images:
-- gcr.io/colorchef-f8206/colorchef
+- 'us-west1-docker.pkg.dev/projectcolorchef/project-colorchef/colorchef'

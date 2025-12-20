@@ -1,13 +1,21 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.8
+FROM tiangolo/uvicorn-gunicorn:python3.8-slim
 
+# Allow statements and log messages to immediately appear in the Knative logs
 ENV PYTHONUNBUFFERED True
 
+# Copy local code to the container image.
 ENV APP_HOME /app
 WORKDIR $APP_HOME
 COPY . ./
+COPY Pipfile ./Pipfile
 
-RUN pip install --no-cache-dir -r requirements.txt
+# opencv dependencies
+# RUN apt-get update
+# RUN apt-get install ffmpeg libsm6 libxext6  -y
+
+# install pipenv for managing packages & env
+RUN pip install --no-cache-dir pipenv
+# install all of the requirements
+RUN pipenv install --deploy --clear --system
 
 COPY ./app /app/app
-
-CMD exec gunicorn --bind :$PORT --worker-class uvicorn.workers.UvicornWorker --timeout 0 --threads 8 app.main:app

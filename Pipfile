@@ -4,7 +4,6 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-opencv-python = "*"
 sklearn = "*"
 numpy = "*"
 pillow = "*"
@@ -12,6 +11,7 @@ fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 fastapi-versioning = "*"
 python-multipart = "*"
+opencv-python-headless = "*"
 
 [scripts]
 start = "uvicorn app.main:app --reload"
