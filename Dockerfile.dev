@@ -1,0 +1,20 @@
+FROM tiangolo/uvicorn-gunicorn:python3.8-slim
+
+ENV PYTHONUNBUFFERED=True
+
+# Install git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+ENV APP_HOME=/app
+WORKDIR $APP_HOME
+
+COPY . ./
+COPY Pipfile ./Pipfile
+
+RUN pip install --no-cache-dir pipenv
+RUN pipenv lock && pipenv install --system --clear
+
+COPY ./app /app/app
+
+# Hot reload mode
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]

@@ -4,17 +4,18 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-sklearn = "*"
+scikit-learn = "*"
 numpy = "*"
 pillow = "*"
-fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 fastapi-versioning = "*"
 python-multipart = "*"
 opencv-python-headless = "*"
+httpx = "*"
+requests = "*"
 
 [scripts]
-start = "uvicorn app.main:app --reload"
+start = "uvicorn app.main:app --reload --port 5000"
 
 [dev-packages]
 

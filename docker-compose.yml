@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  colorchef-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: colorchef-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+    environment:
+      - PYTHONUNBUFFERED=True
+    networks:
+      - colorchef-network
+
+networks:
+  colorchef-network:
+    driver: bridge

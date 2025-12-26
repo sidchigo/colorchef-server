@@ -3,12 +3,14 @@ from fastapi_versioning import VersionedFastAPI, version
 from starlette.middleware.cors import CORSMiddleware
 
 from .routers import palette
+from .routers import cinema
 
 app = FastAPI(title="Colorchef")
 
 origins = ['*']
 
 app.include_router(palette.router)
+app.include_router(cinema.router)
 
 @version(1)
 @app.get("/")
