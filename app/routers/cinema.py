@@ -1,5 +1,5 @@
 from app.schemas.cinema import MovieListRequest
-from app.services.cinema_service import process_movies_background
+from app.services.cinema_service import process_movies_background, soft_delete_movie, hard_delete_movie
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi_versioning import version
 
@@ -45,6 +45,39 @@ async def sync_cinema_palettes(request: MovieListRequest, background_tasks: Back
         "details": "Changes will be synced to Git and revalidated on Next.js"
     }
 
+@version(1)
+@router.patch("/{slug}/archive")
+async def archive_movie(slug: str):
+    """
+    Soft Delete: Hides the movie from the frontend but keeps the data file in the repo.
+    """
+    success = soft_delete_movie(slug)
+    
+    if not success:
+        # 404 is appropriate because if the file doesn't exist, we can't archive it
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Movie '{slug}' not found or could not be archived"
+        )
+        
+    return {"message": f"Movie '{slug}' successfully archived (hidden from public)."}
+
+@version(1)
+@router.delete("/{slug}/permanent")
+async def delete_movie_permanently(slug: str):
+    """
+    Hard Delete: Physically removes the JSON file from the server/repo.
+    This action is irreversible.
+    """
+    success = hard_delete_movie(slug)
+    
+    if not success:
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Movie '{slug}' not found or could not be deleted"
+        )
+        
+    return {"message": f"Movie '{slug}' permanently deleted."}
 
 @version(1)
 @router.get('/data')
