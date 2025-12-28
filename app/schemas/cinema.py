@@ -4,9 +4,10 @@ from typing import List, Optional
 
 class MovieRequest(BaseModel):
     title: str
+    is_visible: bool = True
     year: Optional[int] = None
     region: Optional[str] = None
-    is_visible: bool = True
+    tags: Optional[List[str]] = []
 
 class MovieListRequest(BaseModel):
     movies: List[MovieRequest]

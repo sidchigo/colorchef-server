@@ -80,34 +80,6 @@ async def delete_movie_permanently(slug: str):
     return {"message": f"Movie '{slug}' permanently deleted."}
 
 @version(1)
-@router.get('/data')
-async def get_cinema_data():
-    """
-    Endpoint to retrieve all cinema data from individual movie files
-    Returns data in the format expected by Next.js
-    """
-    try:
-        cinema_data = {}
-        
-        if not os.path.exists(MOVIES_DIR):
-            return cinema_data
-        
-        for filename in os.listdir(MOVIES_DIR):
-            if filename.endswith('.json'):
-                slug = filename[:-5]  # Remove .json extension
-                filepath = os.path.join(MOVIES_DIR, filename)
-                
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    movie_data = json.load(f)
-                    cinema_data[slug] = movie_data
-        
-        return cinema_data
-    except Exception as e:
-        logger.error(f"Error fetching cinema data: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@version(1)
 @router.get('/index')
 async def get_cinema_index():
     """

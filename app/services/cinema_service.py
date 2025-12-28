@@ -22,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
 niche_map = {
-    "shamanism": ["shamanism", "religious horror"],
-    "shaman": ["shamanism", "religious horror"],
+    "shamanism": ["shamanism", "religious horror", "asian religious horror"],
+    "shaman": ["shamanism", "religious horror", "asian religious horror"],
     "curse": ["curse", "religious horror"],
     "ritual": ["ritual", "religious horror"],
-    "jinn": ["islamic horror", "religious horror"],
-    "djinn": ["islamic horror", "religious horror"]
+    "jinn": ["islamic horror", "religious horror", "djinn", "jinn"],
+    "djinn": ["islamic horror", "religious horror", "djinn", "jinn"]
 }
 
 # --- HELPER FUNCTIONS ---
@@ -76,7 +76,22 @@ def map_niche_tags(raw_keywords: List[str]) -> List[str]:
             else:
                 found_tags.add(val)
             
-    return list(found_tags)
+    return list(set(found_tags))
+
+async def get_watch_providers(movie_id: int, api_key: str, country_code="US"):
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/watch/providers"
+    params = {"api_key": api_key}
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, params=params)
+        data = resp.json()
+        
+    # Get providers for the specific country (e.g., US or IN)
+    country_data = data.get("results", {}).get(country_code, {})
+    
+    # Return just the flatrate (streaming) providers
+    # e.g. [{'provider_name': 'Netflix', 'logo_path': '/...jpg'}, ...]
+    return country_data.get("flatrate", [])
 
 # --- CORE DATA MANAGEMENT ---
 
@@ -144,10 +159,12 @@ def rebuild_index() -> bool:
                 if movie.get('is_visible', True):
                     index_entry = {
                         'title': movie.get('title'),
+                        'year': movie.get('year'),
                         'slug': movie.get('slug'),
                         'palette': movie.get('palette', []),
                         'backdrop_url': movie.get('backdrop_url'),
                         'tmdb_id': movie.get('tmdb_id'),
+                        'providers': movie.get('providers', []),
                         'tags': movie.get('tags', []),
                         "raw_keywords": movie.get('raw_keywords', []),
                     }
@@ -283,6 +300,8 @@ async def process_movies_background(movies: List[MovieRequest], tmdb_api_key: st
         title = movie_req.title
         year = movie_req.year
         region = movie_req.region
+        curated_tags = movie_req.tags
+        logger.info(curated_tags)
         try:
             async with httpx.AsyncClient() as client:
                 # Build search params
@@ -296,19 +315,20 @@ async def process_movies_background(movies: List[MovieRequest], tmdb_api_key: st
                 if search_data.get("results"):
                     movie = search_data["results"][0]
                     movie_id = movie.get("id")
+                    movie_title = movie.get("title")
+                    movie_year = movie.get("release_date")[0:4]
 
                     # Keywords & Niche Tags
                     raw_keywords = await get_movie_keywords(movie_id, tmdb_api_key)
                     niche_tags = map_niche_tags(raw_keywords)
 
-                    final_tags = niche_tags.copy()
+                    # combining both lists and de-duplicating tags
+                    final_tags = list(dict.fromkeys([t.lower() for t in (curated_tags + niche_tags)]))
                     
-                    # Fill gaps with raw keywords (Title Cased)
+                    # Fill gaps with raw keywords
                     for kw in raw_keywords:
-                        # Convert "found footage" -> "Found Footage"
-                        formatted_kw = kw.title()
+                        formatted_kw = kw.lower()
                         
-                        # Avoid duplicates (e.g., don't add "Shamanism" if it's already in niche_tags)
                         if formatted_kw not in final_tags:
                             final_tags.append(formatted_kw)
                             
@@ -316,7 +336,6 @@ async def process_movies_background(movies: List[MovieRequest], tmdb_api_key: st
                         if len(final_tags) >= 6:
                             break
                     
-                    final_tags = list(map(str.lower, final_tags))
                     # Images
                     images_response = await client.get(
                         TMDB_IMAGES_URL.format(movie_id=movie_id),
@@ -332,6 +351,7 @@ async def process_movies_background(movies: List[MovieRequest], tmdb_api_key: st
                         reverse=True
                     )
                     
+                    providers = await get_watch_providers(movie_id, tmdb_api_key)
                     if best_backdrops:
                         best_backdrop = best_backdrops[0]
                         backdrop_path = best_backdrop.get("file_path")
@@ -342,12 +362,14 @@ async def process_movies_background(movies: List[MovieRequest], tmdb_api_key: st
                             slug = generate_slug(title)
                             
                             movie_data = {
-                                "title": title,
+                                "title": movie_title,
+                                "year": movie_year,
                                 "tmdb_id": movie_id,
                                 "palette": palette,
                                 "backdrop_url": backdrop_url,
                                 "slug": slug,
                                 "tags": final_tags,
+                                "providers": providers,
                                 "raw_keywords": raw_keywords[:10],
                                 "is_visible": True
                             }
