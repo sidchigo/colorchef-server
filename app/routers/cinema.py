@@ -10,6 +10,7 @@ import os
 from app.constants import (
     MOVIES_DIR,
     INDEX_FILE,
+    CONFIG_FILE
 )
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,11 @@ async def delete_movie_permanently(slug: str):
         
     return {"message": f"Movie '{slug}' permanently deleted."}
 
+@router.get('/config')
+async def get_local_config():
+    if not os.path.exists(CONFIG_FILE): return {}
+    with open(CONFIG_FILE, 'r') as f: return json.load(f)
+
 @version(1)
 @router.get('/index')
 async def get_cinema_index():
@@ -95,5 +101,22 @@ async def get_cinema_index():
         
         return index_data
     except Exception as e:
+        logger.error(f"Error fetching cinema index: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@version(1)
+@router.get('/{slug}') 
+async def get_movie_detail(slug: str):
+    """
+    Fetches a single movie JSON file.
+    Used by Next.js [slug].tsx during local development.
+    """
+    try:
+        file_path = os.path.join(MOVIES_DIR, f"{slug}.json")
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404)
+        
+        with open(file_path, 'r') as f: return json.load(f)
+    except Exception as e:  
         logger.error(f"Error fetching cinema index: {e}")
         raise HTTPException(status_code=500, detail=str(e))

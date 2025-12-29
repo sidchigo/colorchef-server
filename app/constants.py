@@ -10,6 +10,7 @@ TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w1280"
 DATA_REPO_PATH = os.getenv('DATA_REPO_PATH', 'colorchef-data')
 MOVIES_DIR = os.path.join(DATA_REPO_PATH, 'movies')
 INDEX_FILE = os.path.join(DATA_REPO_PATH, 'index.json')
+CONFIG_FILE = os.path.join(DATA_REPO_PATH, 'config.json')
 
 # Revalidation Configuration
 REVALIDATE_SECRET = os.getenv('REVALIDATE_SECRET', 'your-secret-key')

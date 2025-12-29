@@ -3,6 +3,7 @@ from app.schemas.cinema import MovieRequest
 from app.services.palette_extraction import extract_colors
 from datetime import datetime
 from app.constants import (
+    CONFIG_FILE,
     TMDB_SEARCH_URL,
     TMDB_IMAGES_URL,
     TMDB_IMAGE_BASE_URL,
@@ -19,16 +20,6 @@ import json
 import os
 
 logger = logging.getLogger(__name__)
-
-# --- CONFIGURATION ---
-niche_map = {
-    "shamanism": ["shamanism", "religious horror", "asian religious horror"],
-    "shaman": ["shamanism", "religious horror", "asian religious horror"],
-    "curse": ["curse", "religious horror"],
-    "ritual": ["ritual", "religious horror"],
-    "jinn": ["islamic horror", "religious horror", "djinn", "jinn"],
-    "djinn": ["islamic horror", "religious horror", "djinn", "jinn"]
-}
 
 # --- HELPER FUNCTIONS ---
 
@@ -61,11 +52,25 @@ async def get_movie_keywords(movie_id: int, api_key: str) -> List[str]:
             return [k['name'] for k in keywords_data.get('keywords', [])]
     return []
 
+def load_config():
+    """Load niche_map and other settings from config.json"""
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                return config.get("niche_map", {})
+    except Exception as e:
+        logger.error(f"Failed to load config.json: {e}")
+    
+    # Fallback to empty dict or your hardcoded defaults
+    return {}
+
 def map_niche_tags(raw_keywords: List[str]) -> List[str]:
     """
     Map broad TMDB keywords to your specific 'Niche Tags'.
     Handles both string and list values in niche_map.
     """
+    niche_map = load_config()
     found_tags = set()
     for kw in raw_keywords:
         kw_lower = kw.lower()
@@ -159,12 +164,9 @@ def rebuild_index() -> bool:
                 if movie.get('is_visible', True):
                     index_entry = {
                         'title': movie.get('title'),
-                        'year': movie.get('year'),
                         'slug': movie.get('slug'),
                         'palette': movie.get('palette', []),
                         'backdrop_url': movie.get('backdrop_url'),
-                        'tmdb_id': movie.get('tmdb_id'),
-                        'providers': movie.get('providers', []),
                         'tags': movie.get('tags', []),
                         "raw_keywords": movie.get('raw_keywords', []),
                     }
@@ -367,7 +369,7 @@ async def process_movies_background(movies: List[MovieRequest], tmdb_api_key: st
                                 "tmdb_id": movie_id,
                                 "palette": palette,
                                 "backdrop_url": backdrop_url,
-                                "slug": slug,
+                                "slug": generate_slug(movie_title + "_" + movie_year),
                                 "tags": final_tags,
                                 "providers": providers,
                                 "raw_keywords": raw_keywords[:10],
