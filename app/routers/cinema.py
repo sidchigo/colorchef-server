@@ -35,15 +35,12 @@ async def sync_cinema_palettes(request: MovieListRequest, background_tasks: Back
     1. Fetches movie data from TMDB
     2. Saves individual movie files to movies/ directory
     3. Updates root index.json
-    4. Commits and pushes to Git repository
-    5. Triggers Next.js ISR revalidation
     """
     background_tasks.add_task(process_movies_background, request.movies, request.tmdb_api_key)
     
     return {
         "status": "processing",
-        "message": f"Started processing {len(request.movies)} movies",
-        "details": "Changes will be synced to Git and revalidated on Next.js"
+        "message": f"Started processing {len(request.movies)} movies"
     }
 
 @version(1)

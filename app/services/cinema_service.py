@@ -8,9 +8,7 @@ from app.constants import (
     TMDB_IMAGES_URL,
     TMDB_IMAGE_BASE_URL,
     MOVIES_DIR,
-    INDEX_FILE,
-    REVALIDATE_SECRET,
-    REVALIDATE_URL,
+    INDEX_FILE
 )
 
 import httpx
@@ -184,28 +182,6 @@ def rebuild_index() -> bool:
         logger.error(f"Error rebuilding index: {str(e)}")
         return False
 
-def trigger_revalidation(slug: Optional[str] = None) -> bool:
-    """Trigger Next.js ISR revalidation"""
-    try:
-        path = f'/cinema/{slug}' if slug else '/cinema'
-        params = {
-            'secret': REVALIDATE_SECRET,
-            'path': path
-        }
-        
-        response = requests.get(REVALIDATE_URL, params=params, timeout=10)
-        
-        if response.status_code == 200:
-            logger.info(f"Revalidated: {path}")
-            return True
-        else:
-            logger.warning(f"Revalidation failed for {path}: {response.status_code}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"Error triggering revalidation: {str(e)}")
-        return False
-
 # --- SYNC & DELETE OPERATIONS ---
 
 def sync_cinema_data(movies_data: list) -> dict:
@@ -241,18 +217,11 @@ def sync_cinema_data(movies_data: list) -> dict:
         report['success'] = False
         report['errors'].append("Failed to rebuild index file")
     
-    # Step 3: Trigger revalidation
-    if report['saved_movies'] > 0:
-        if trigger_revalidation():
-            report['revalidation_triggered'] = True
-        else:
-            report['errors'].append("Failed to trigger revalidation")
-    
     return report
 
 def soft_delete_movie(slug: str) -> bool:
     """
-    Soft Delete: Sets 'is_visible': False, rebuilds index, revalidates.
+    Soft Delete: Sets 'is_visible': False & rebuilds index.
     File remains in repo.
     """
     file_path = os.path.join(MOVIES_DIR, f"{slug}.json")
@@ -269,8 +238,6 @@ def soft_delete_movie(slug: str) -> bool:
             json.dump(data, f, indent=2, ensure_ascii=False)
             
         rebuild_index()
-        trigger_revalidation(slug)
-        trigger_revalidation()
         return True
     except Exception as e:
         logger.error(f"Soft delete failed for {slug}: {e}")
@@ -283,8 +250,6 @@ def hard_delete_movie(slug: str) -> bool:
         try:
             os.remove(file_path)
             rebuild_index()
-            trigger_revalidation()
-            trigger_revalidation(slug)
             return True
         except Exception as e:
             logger.error(f"Hard delete failed: {e}")

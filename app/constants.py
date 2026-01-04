@@ -12,9 +12,5 @@ MOVIES_DIR = os.path.join(DATA_REPO_PATH, 'movies')
 INDEX_FILE = os.path.join(DATA_REPO_PATH, 'index.json')
 CONFIG_FILE = os.path.join(DATA_REPO_PATH, 'config.json')
 
-# Revalidation Configuration
-REVALIDATE_SECRET = os.getenv('REVALIDATE_SECRET', 'your-secret-key')
-REVALIDATE_URL = 'https://colorchef.vercel.app/api/revalidate'
-
 # Ensure directories exist
 Path(MOVIES_DIR).mkdir(parents=True, exist_ok=True)
